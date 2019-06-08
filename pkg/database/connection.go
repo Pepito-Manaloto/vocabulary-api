@@ -8,13 +8,15 @@ import (
     "github.com/pkg/errors"
 )
 
-func Connect(config *file.Config) (db *sql.DB, err error) {
+const (
+    DbDriver = "mysql"
+)
 
-    const dbDriver = "mysql"
+func Connect(config *file.Config) (db *sql.DB, err error) {
 
     dataSource := dataSourceFromConfig(config)
 
-    db, err = sql.Open(dbDriver, dataSource)
+    db, err = sql.Open(DbDriver, dataSource)
 
     err = errors.Wrapf(err, "Connect. Error connecting to database. dataSource=%s", dataSource)
 

@@ -3,13 +3,13 @@ package database
 import (
     "database/sql"
     j "github.com/Pepito-Manaloto/vocabulary-api/pkg/json"
-    "github.com/rs/zerolog"
     "github.com/pkg/errors"
+    "github.com/rs/zerolog"
     "time"
 )
 
 type Repository struct {
-    Db *sql.DB
+    Db     *sql.DB
     Logger *zerolog.Logger
 }
 
@@ -49,9 +49,12 @@ func (repository *Repository) GetVocabularies(lastUpdated time.Time) (*j.Vocabul
         }
 
         switch counter {
-            case 1: languages.Hokkien = &vocabularyArray
-            case 2: languages.Japanese = &vocabularyArray
-            case 3: languages.Mandarin = &vocabularyArray
+        case 1:
+            languages.Hokkien = &vocabularyArray
+        case 2:
+            languages.Japanese = &vocabularyArray
+        case 3:
+            languages.Mandarin = &vocabularyArray
         }
 
         if !rows.NextResultSet() {
