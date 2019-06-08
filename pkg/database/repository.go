@@ -32,20 +32,9 @@ func (repository *Repository) GetVocabularies(lastUpdated time.Time) (*j.Vocabul
 
     counter := 1
     for {
-        var vocabularyArray []j.Vocabulary
-
-        for rows.Next() {
-            var englishWord string
-            var foreignWord string
-
-            err := rows.Scan(&englishWord, &foreignWord)
-            if err != nil {
-                err = errors.Wrapf(err, "getVocabularies. Error scanning row.")
-                return nil, err
-            } else {
-                vocabulary := j.Vocabulary{englishWord, foreignWord}
-                vocabularyArray = append(vocabularyArray, vocabulary)
-            }
+        vocabularyArray, err := getVocabularyArrayOfALanguage(rows)
+        if err != nil {
+            return nil, err
         }
 
         switch counter {
@@ -70,4 +59,24 @@ func (repository *Repository) GetVocabularies(lastUpdated time.Time) (*j.Vocabul
     repository.Logger.Info().Msgf("getVocabularies. Done. lastUpdated=%s", lastUpdated)
 
     return vocabularies, err
+}
+
+func getVocabularyArrayOfALanguage(rows *sql.Rows) ([]j.Vocabulary, error) {
+    var vocabularyArray []j.Vocabulary
+
+    for rows.Next() {
+        var englishWord string
+        var foreignWord string
+
+        err := rows.Scan(&englishWord, &foreignWord)
+        if err != nil {
+            err = errors.Wrapf(err, "getVocabularyArrayOfALanguage. Error scanning row.")
+            return nil, err
+        } else {
+            vocabulary := j.Vocabulary{englishWord, foreignWord}
+            vocabularyArray = append(vocabularyArray, vocabulary)
+        }
+    }
+
+    return vocabularyArray, nil
 }

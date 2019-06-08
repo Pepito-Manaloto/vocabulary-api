@@ -6,7 +6,6 @@ import (
     j "github.com/Pepito-Manaloto/vocabulary-api/pkg/json"
     "github.com/julienschmidt/httprouter"
     "github.com/rs/zerolog"
-    "io"
     "net/http"
     "time"
 )
@@ -30,7 +29,6 @@ func (handler *Handler) Handle() http.Handler {
 
 func getVocabularies(h *Handler) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
     return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-        w.Header().Set("Content-Type", "application/json")
 
         lastUpdatedQueryParam := r.URL.Query().Get("last_updated")
 
@@ -52,7 +50,7 @@ func getVocabularies(h *Handler) func(w http.ResponseWriter, r *http.Request, _ 
             return
         }
 
-        err = json.NewEncoder(w).Encode(vocabularies)
+        err = jsonSuccessResponse(w, vocabularies)
         if err != nil {
             h.Logger.Err(err).Msgf("getVocabularies. Failed encoding json to writer. lastUpdated=%s", lastUpdated)
 
@@ -71,11 +69,16 @@ func parseLastUpdatedQueryParam(lastUpdatedQuery string) (time.Time, error) {
     return time.Parse("2006-01-02", lastUpdatedQuery)
 }
 
-func jsonErrorResponse(w io.Writer, message error, code uint) {
+func jsonSuccessResponse(w http.ResponseWriter, response interface{}) error {
+    return json.NewEncoder(w).Encode(response)
+}
+
+func jsonErrorResponse(w http.ResponseWriter, message error, code uint) {
     jsonErr :=  j.Error {
         Message: message.Error(),
         Code: code,
     }
 
+    w.Header().Set("Content-Type", "application/json")
     _ = json.NewEncoder(w).Encode(jsonErr)
 }
