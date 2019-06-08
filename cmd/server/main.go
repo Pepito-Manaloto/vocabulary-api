@@ -1,35 +1,43 @@
 package main
 
 import (
-    "encoding/json"
     "github.com/Pepito-Manaloto/vocabulary-api/pkg/database"
     "github.com/Pepito-Manaloto/vocabulary-api/pkg/file"
-    "time"
+    "github.com/Pepito-Manaloto/vocabulary-api/pkg/resource"
+    "net/http"
 )
 
 const (
-    configFilePath = "conf/vocabulary.json"
+    ConfigFilePath = "conf/vocabulary.json"
 )
 
 func main() {
 
-    configuration := file.LoadConfiguration(configFilePath)
+    configuration := file.LoadConfiguration(ConfigFilePath)
     logger := file.NewLogger(configuration)
 
     logger.Info().Msg("Started!")
 
     db, err := database.Connect(&configuration)
     if err != nil {
-        logger.Error().Err(err).Msg("Failed getting database connection")
+        logger.Error().Err(err).Msg("main. Failed getting database connection")
     }
 
     repository := database.Repository{
-        Db: db,
+        Db:     db,
         Logger: &logger,
     }
 
-    vocabularies, err := repository.GetVocabularies(time.Now().AddDate(-10, 0,0))
+    routerHandler := resource.Handler {
+        Repository: &repository,
+        Logger: &logger,
+    }
 
-    result, _ := json.Marshal(vocabularies)
-    logger.Info().Msg(string(result))
+    err = http.ListenAndServe(":8888", routerHandler.Handle())
+
+    if err != nil {
+        logger.Fatal().Err(err).Msg("main. Failed http.ListenAndServe")
+    } else {
+        logger.Info().Msg("main. Started!")
+    }
 }
