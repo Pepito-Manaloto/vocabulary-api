@@ -30,6 +30,14 @@ func (handler *Handler) Handle() http.Handler {
 func getVocabularies(h *Handler) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
     return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
+        code, err := authenticateRequest(r.Header, h.Logger)
+        if err != nil {
+            h.Logger.Err(err).Msg("getVocabularies. Request not authorized.")
+
+            jsonErrorResponse(w, err, code)
+            return
+        }
+
         lastUpdatedQueryParam := r.URL.Query().Get("last_updated")
 
         lastUpdated, err := parseLastUpdatedQueryParam(lastUpdatedQueryParam)
@@ -73,7 +81,7 @@ func jsonSuccessResponse(w http.ResponseWriter, response interface{}) error {
     return json.NewEncoder(w).Encode(response)
 }
 
-func jsonErrorResponse(w http.ResponseWriter, message error, code uint) {
+func jsonErrorResponse(w http.ResponseWriter, message error, code int) {
     jsonErr :=  j.Error {
         Message: message.Error(),
         Code: code,

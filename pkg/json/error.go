@@ -2,5 +2,5 @@ package json
 
 type Error struct {
     Message string `json:"message"`
-    Code uint `json:"code"`
+    Code int `json:"code"`
 }

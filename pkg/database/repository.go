@@ -17,66 +17,71 @@ func (repository *Repository) GetVocabularies(lastUpdated time.Time) (*j.Vocabul
 
     repository.Logger.Info().Msgf("getVocabularies. Start. lastUpdated=%s", lastUpdated)
 
-    var recentlyAddedCount string
-    rows, err := repository.Db.Query("CALL Get_Vocabularies(?, ?)", lastUpdated, sql.Out{Dest: &recentlyAddedCount})
-
+    rows, err := repository.Db.Query("SELECT v.english_word, v.foreign_word, f.language FROM vocabulary v, foreign_language f WHERE v.foreign_id = f.id order by f.language ASC, v.english_word ASC")
     if err != nil {
-        err = errors.Wrapf(err, "getVocabularies. Error calling Get_Vocabularies(%s, @recently_added_count)", lastUpdated)
+        err = errors.Wrapf(err, "getVocabularies. Error in SELECT query. lastUpdated=%s", lastUpdated)
+        return nil, err
+    }
+    defer rows.Close()
+
+    languages, err := processSelectVocabularies(rows)
+    if err != nil {
+        err = errors.Wrapf(err, "getVocabularies. Error processing database result. lastUpdated=%s", lastUpdated)
         return nil, err
     }
 
-    defer rows.Close()
-
-    languages := &j.Languages{}
     vocabularies := &j.Vocabularies{}
+    vocabularies.Languages = languages
 
-    counter := 1
-    for {
-        vocabularyArray, err := getVocabularyArrayOfALanguage(rows)
-        if err != nil {
-            return nil, err
-        }
-
-        switch counter {
-        case 1:
-            languages.Hokkien = &vocabularyArray
-        case 2:
-            languages.Japanese = &vocabularyArray
-        case 3:
-            languages.Mandarin = &vocabularyArray
-        }
-
-        if !rows.NextResultSet() {
-            break
-        } else {
-            counter++
-        }
+    var recentlyAddedCount string
+    err = repository.Db.QueryRow("SELECT COUNT(*) FROM vocabulary WHERE last_updated > (?  - INTERVAL 30 MINUTE)", lastUpdated).Scan(&recentlyAddedCount)
+    if err != nil {
+        err = errors.Wrapf(err, "getVocabularies. Error getting recently added count. lastUpdated=%s", lastUpdated)
+        return nil, err
     }
 
-    vocabularies.Languages = languages
-    vocabularies.RecentlyAddedCount = recentlyAddedCount
+    vocabularies.RecentlyAddedCount = string(recentlyAddedCount)
 
     repository.Logger.Info().Msgf("getVocabularies. Done. lastUpdated=%s", lastUpdated)
 
     return vocabularies, err
 }
 
-func getVocabularyArrayOfALanguage(rows *sql.Rows) ([]j.Vocabulary, error) {
-    var vocabularyArray []j.Vocabulary
+func processSelectVocabularies(rows *sql.Rows) (*j.Languages, error) {
+
+    languages := &j.Languages{}
+
+    var hokkienVocabularies []j.Vocabulary
+    var japaneseVocabularies []j.Vocabulary
+    var mandarinVocabularies []j.Vocabulary
 
     for rows.Next() {
         var englishWord string
         var foreignWord string
+        var language string
 
-        err := rows.Scan(&englishWord, &foreignWord)
+        err := rows.Scan(&englishWord, &foreignWord, &language)
         if err != nil {
-            err = errors.Wrapf(err, "getVocabularyArrayOfALanguage. Error scanning row.")
+            err = errors.Wrapf(err, "processSelectVocabularies. Error scanning row.")
             return nil, err
         } else {
             vocabulary := j.Vocabulary{englishWord, foreignWord}
-            vocabularyArray = append(vocabularyArray, vocabulary)
+
+            switch language {
+                case "Hokkien":
+                    hokkienVocabularies = append(hokkienVocabularies, vocabulary)
+                case "Japanese":
+                    japaneseVocabularies = append(japaneseVocabularies, vocabulary)
+                case "Mandarin":
+                    mandarinVocabularies = append(mandarinVocabularies, vocabulary)
+            }
+
         }
     }
 
-    return vocabularyArray, nil
+    languages.Hokkien = &hokkienVocabularies
+    languages.Japanese = &japaneseVocabularies
+    languages.Mandarin = &mandarinVocabularies
+
+    return languages, nil
 }
