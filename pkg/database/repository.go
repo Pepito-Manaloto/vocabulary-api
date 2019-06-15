@@ -13,6 +13,12 @@ type Repository struct {
     Logger *zerolog.Logger
 }
 
+const (
+    Hokkien = "Hokkien"
+    Japanese = "Japanese"
+    Mandarin = "Mandarin"
+)
+
 func (repository *Repository) GetVocabularies(lastUpdated time.Time) (*j.Vocabularies, error) {
 
     repository.Logger.Info().Msgf("getVocabularies. Start. lastUpdated=%s", lastUpdated)
@@ -68,11 +74,11 @@ func processSelectVocabularies(rows *sql.Rows) (*j.Languages, error) {
             vocabulary := j.Vocabulary{englishWord, foreignWord}
 
             switch language {
-                case "Hokkien":
+                case Hokkien:
                     hokkienVocabularies = append(hokkienVocabularies, vocabulary)
-                case "Japanese":
+                case Japanese:
                     japaneseVocabularies = append(japaneseVocabularies, vocabulary)
-                case "Mandarin":
+                case Mandarin:
                     mandarinVocabularies = append(mandarinVocabularies, vocabulary)
             }
 

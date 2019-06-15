@@ -4,7 +4,6 @@ import (
     "crypto/md5"
     "errors"
     "fmt"
-    "github.com/rs/zerolog"
     "net/http"
     "strings"
 )
@@ -17,11 +16,9 @@ func init() {
     authPassword = fmt.Sprintf("%x", md5.Sum(insecureAuthorizationPassword))
 }
 
-func authenticateRequest(header http.Header, logger *zerolog.Logger) (int, error) {
+func authenticateRequest(header http.Header) (int, error) {
 
     authHeader := header.Get("Authorization")
-
-    logger.Info().Msgf("authenticateRequest. Authorization=%s", authHeader)
 
     if len(authHeader) <= 0 {
         return http.StatusBadRequest, errors.New("Please provide authorize key.")

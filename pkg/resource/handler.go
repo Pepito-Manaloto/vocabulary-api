@@ -30,7 +30,9 @@ func (handler *Handler) Handle() http.Handler {
 func getVocabularies(h *Handler) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
     return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
-        code, err := authenticateRequest(r.Header, h.Logger)
+        h.Logger.Info().Msgf("getVocabularies. Authorization=%s", r.Header.Get("Authorization"))
+
+        code, err := authenticateRequest(r.Header)
         if err != nil {
             h.Logger.Err(err).Msg("getVocabularies. Request not authorized.")
 
